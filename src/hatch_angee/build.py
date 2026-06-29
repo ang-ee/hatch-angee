@@ -47,7 +47,7 @@ def _enable(builder: Any) -> None:
     builder.metadata.hatch.metadata.config.setdefault("hooks", {}).setdefault(_METADATA_HOOK, {})
 
 
-def build_wheel(
+def build_wheel(  # type: ignore[no-redef]  # intentionally overrides hatchling's
     wheel_directory: str,
     config_settings: dict[str, Any] | None = None,
     metadata_directory: str | None = None,
@@ -61,7 +61,7 @@ def build_wheel(
     return os.path.basename(next(builder.build(directory=wheel_directory, versions=["standard"])))
 
 
-def build_editable(
+def build_editable(  # type: ignore[no-redef]  # intentionally overrides hatchling's
     wheel_directory: str,
     config_settings: dict[str, Any] | None = None,
     metadata_directory: str | None = None,

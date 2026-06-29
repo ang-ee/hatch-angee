@@ -21,27 +21,38 @@ bundle all work without configuration.
 from __future__ import annotations
 
 import tomllib
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator
+from typing import Any
 
 from hatchling.builders.hooks.plugin.interface import BuildHookInterface
 from hatchling.metadata.plugin.interface import MetadataHookInterface
 
 ENTRY_POINT_GROUP = "angee.addons"
-_PRUNE = {"node_modules", ".venv", "venv", "dist", "build", ".git", "__pycache__"}
+# Never descend into dependency/build/cache/venv trees: addon source never lives in a
+# dot-directory (`.angee` — which holds the in-repo uv cache + dev worktrees — `.venv`,
+# `.git`, `.tox`, …) or a build-output dir. Checked on the path *relative to root* so a
+# dot in a parent of the project doesn't prune everything.
+_PRUNE = {"node_modules", "venv", "dist", "build", "site-packages"}
 _SEAMS = ("web", "templates", "skills")
+
+
+def _pruned(parts: tuple[str, ...]) -> bool:
+    """Return whether any path component is a build/cache dir or a dot-directory."""
+
+    return any(part in _PRUNE or part.startswith(".") for part in parts)
 
 
 def iter_addons(root: Path) -> Iterator[tuple[str, Path]]:
     """Yield ``(name, addon_dir)`` for every ``addon.toml`` under ``root``.
 
-    Sorted for build determinism; pruned of dependency/build/venv trees.
+    Sorted for build determinism; pruned of dependency/build/cache/venv trees.
     """
 
     markers = (
         m
         for m in root.rglob("addon.toml")
-        if not (_PRUNE & set(m.parts))
+        if not _pruned(m.relative_to(root).parts)
     )
     for marker in sorted(markers):
         name = tomllib.loads(marker.read_text()).get("addon", {}).get("name")
@@ -54,14 +65,14 @@ class AddonEntryPointsHook(MetadataHookInterface):
 
     PLUGIN_NAME = "angee-addons"
 
-    def update(self, metadata: dict) -> None:
+    def update(self, metadata: dict[str, Any]) -> None:
         """Set the ``angee.addons`` group: ``name -> import anchor`` per addon."""
 
         addons = {name: name for name, _dir in iter_addons(Path(self.root))}
         metadata.setdefault("entry-points", {})[ENTRY_POINT_GROUP] = dict(sorted(addons.items()))
 
 
-class AddonSourcesBuildHook(BuildHookInterface):
+class AddonSourcesBuildHook(BuildHookInterface[Any]):
     """Force-include each addon's web/templates/skills trees into the wheel.
 
     Hatchling's default file walk drops some source trees inconsistently, so each
@@ -71,7 +82,7 @@ class AddonSourcesBuildHook(BuildHookInterface):
 
     PLUGIN_NAME = "angee-addon-sources"
 
-    def initialize(self, version: str, build_data: dict) -> None:
+    def initialize(self, version: str, build_data: dict[str, Any]) -> None:
         """Map every addon seam (and any configured extra web root) into the wheel.
 
         When an addon's source path already equals its import path (the normal
