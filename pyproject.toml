@@ -1,0 +1,20 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "hatch-angee"
+version = "0.1.0"
+description = "Hatchling build hooks for Angee addons — generated entry points + source distribution."
+readme = "README.md"
+license = "AGPL-3.0-or-later"
+requires-python = ">=3.11"
+dependencies = ["hatchling>=1.18"]
+
+# Register the hooks with hatchling so an addon repo references them by name
+# (no per-repo hook code). See src/hatch_angee/plugin.py.
+[project.entry-points.hatch]
+angee = "hatch_angee.plugin"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/hatch_angee"]
