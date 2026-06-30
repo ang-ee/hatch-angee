@@ -4,4 +4,4 @@ Addon repos depend on this at build time and reference the hooks by name; they
 ship no ``hatch_build.py`` of their own. See ``hooks.py``.
 """
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
