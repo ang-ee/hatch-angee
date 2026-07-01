@@ -115,17 +115,19 @@ class AddonSourcesBuildHook(BuildHookInterface[Any]):
 
     @staticmethod
     def _ship(force_include: dict[str, str], source: Path, target: str) -> None:
-        """Force-include ``source``'s ``src``/``bin``/``config``/``package.json``.
+        """Force-include ``source``'s ``src``/``bin``/``config``/``schema``/``package.json``.
 
         ``config`` carries a web package's build-time config a downstream project
         consumes by package name (e.g. ``@angee/app/vite`` → ``config/vite.ts``);
-        it must ship so those subpath exports resolve from a pure wheel install,
-        not only from an editable checkout.
+        ``schema`` carries an addon frontend's committed GraphQL SDL (e.g.
+        ``@angee/operator/schema/operator.graphql``) that ``angee-web-codegen`` reads
+        per the runtime manifest. Both must ship so those subpath references resolve
+        from a pure wheel install, not only from an editable checkout.
         """
 
         if not source.is_dir():
             return
-        for child in ("src", "bin", "config"):
+        for child in ("src", "bin", "config", "schema"):
             sub = source / child
             if sub.is_dir():
                 force_include[str(sub)] = f"{target}/{child}"
