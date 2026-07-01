@@ -115,11 +115,17 @@ class AddonSourcesBuildHook(BuildHookInterface[Any]):
 
     @staticmethod
     def _ship(force_include: dict[str, str], source: Path, target: str) -> None:
-        """Force-include ``source``'s ``src``/``bin``/``package.json`` under ``target``."""
+        """Force-include ``source``'s ``src``/``bin``/``config``/``package.json``.
+
+        ``config`` carries a web package's build-time config a downstream project
+        consumes by package name (e.g. ``@angee/app/vite`` → ``config/vite.ts``);
+        it must ship so those subpath exports resolve from a pure wheel install,
+        not only from an editable checkout.
+        """
 
         if not source.is_dir():
             return
-        for child in ("src", "bin"):
+        for child in ("src", "bin", "config"):
             sub = source / child
             if sub.is_dir():
                 force_include[str(sub)] = f"{target}/{child}"

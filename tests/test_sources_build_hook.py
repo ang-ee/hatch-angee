@@ -33,7 +33,9 @@ def test_editable_build_is_a_noop(tmp_path, make_addon):
 
 def test_remap_layout_ships_each_seam_at_the_import_path(tmp_path, make_addon):
     # Source dir (addons/angee/iam) differs from import path (angee/iam) -> remap.
-    addon = make_addon(tmp_path / "addons" / "angee" / "iam", "angee.iam", with_bin=True)
+    addon = make_addon(
+        tmp_path / "addons" / "angee" / "iam", "angee.iam", with_bin=True, with_config=True
+    )
 
     build_data: dict = {}
     _hook(tmp_path).initialize("standard", build_data)
@@ -41,6 +43,7 @@ def test_remap_layout_ships_each_seam_at_the_import_path(tmp_path, make_addon):
 
     assert fi[str(addon / "web" / "src")] == "angee/iam/web/src"
     assert fi[str(addon / "web" / "bin")] == "angee/iam/web/bin"
+    assert fi[str(addon / "web" / "config")] == "angee/iam/web/config"
     assert fi[str(addon / "web" / "package.json")] == "angee/iam/web/package.json"
     assert fi[str(addon / "templates" / "src")] == "angee/iam/templates/src"
     assert fi[str(addon / "skills" / "src")] == "angee/iam/skills/src"
@@ -69,7 +72,11 @@ def test_absent_seams_are_skipped(tmp_path, make_addon):
 
 
 def test_extra_web_ships_non_addon_packages_verbatim(tmp_path, write_file):
+    # extra-web is how the framework ships its non-addon web libraries (e.g.
+    # `angee/web/*`); @angee/app carries a `config/` build-config seam consumed
+    # downstream by package name, so it must ship alongside src/package.json.
     write_file(tmp_path / "libs" / "shared" / "src" / "util.js", "// util")
+    write_file(tmp_path / "libs" / "shared" / "config" / "vite.ts", "// config")
     write_file(tmp_path / "libs" / "shared" / "package.json", '{"name": "shared"}')
 
     build_data: dict = {}
@@ -77,4 +84,5 @@ def test_extra_web_ships_non_addon_packages_verbatim(tmp_path, write_file):
     fi = build_data["force_include"]
 
     assert fi[str(tmp_path / "libs" / "shared" / "src")] == "libs/shared/src"
+    assert fi[str(tmp_path / "libs" / "shared" / "config")] == "libs/shared/config"
     assert fi[str(tmp_path / "libs" / "shared" / "package.json")] == "libs/shared/package.json"

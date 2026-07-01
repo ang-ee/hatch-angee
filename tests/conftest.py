@@ -37,6 +37,7 @@ def make_addon(write_file):
         seams=("web", "templates", "skills"),
         with_src=True,
         with_bin=False,
+        with_config=False,
         with_manifest=True,
     ) -> Path:
         write_file(addon_dir / "addon.toml", f'[addon]\nname = "{name}"\n')
@@ -45,6 +46,8 @@ def make_addon(write_file):
                 write_file(addon_dir / seam / "src" / "index.js", "// entry")
             if with_bin:
                 write_file(addon_dir / seam / "bin" / "tool.js", "// bin")
+            if with_config:
+                write_file(addon_dir / seam / "config" / "vite.ts", "// config")
             if with_manifest:
                 write_file(addon_dir / seam / "package.json", '{"name": "seam"}')
         return addon_dir
