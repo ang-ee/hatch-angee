@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "hatch-angee"
-version = "0.1.5"
+version = "0.2.0"
 description = "Hatchling build hooks for Angee addons — generated entry points + source distribution."
 readme = "README.md"
 license = "AGPL-3.0-or-later"
@@ -23,7 +23,7 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
     "Topic :: Software Development :: Build Tools",
 ]
-dependencies = ["hatchling>=1.18"]
+dependencies = ["hatchling>=1.18", "packaging>=24", "tomlkit>=0.13"]
 
 [project.optional-dependencies]
 dev = [

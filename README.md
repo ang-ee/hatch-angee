@@ -1,18 +1,20 @@
 # hatch-angee
 
-The one published implementation of Angee's addon build machinery. An addon repo
-sets `hatch_angee.build` as its build backend and carries **no `hatch_build.py`**,
-**no hook tables**, and **no `dynamic`** of its own — the backend wires everything
-in.
+The one published implementation of Angee's addon machinery: the **build
+backend** addon repos set as `build-backend`, and the **library** Angee's
+composer calls in-process (manifest parsing, discovery, dependency
+compilation, the generated pyproject block). An addon repo carries **no
+`hatch_build.py`**, **no hook tables**, and **no `dynamic`** of its own — the
+backend wires everything in.
 
 ```toml
 # an addon repo's pyproject.toml — no Python hook code, no hook tables
 [build-system]
-requires = ["hatch-angee>=0.1"]          # pulls hatchling transitively
+requires = ["hatch-angee>=0.2"]          # pulls hatchling transitively
 build-backend = "hatch_angee.build"
 
 [project]
-name = "angee-addon-crm"
+name = "vendor-crm"                      # the addon name, PEP 503-normalized (vendor.crm)
 version = "0.1.0"
 # no `dynamic = [...]` — the backend declares entry-points dynamic for you
 
@@ -32,6 +34,22 @@ Backend config lives in `[tool.hatch-angee]` — e.g. `extra-web` names glob roo
 of non-addon shared web packages (no `addon.toml`) to ship verbatim. A normal
 addon repo configures none.
 
+## The library face
+
+Angee's composer imports the same package in-process during `angee build`:
+
+- `parse_manifest(path)` → the validated `AddonManifest` (`addon.toml`
+  vocabulary incl. `dependencies` — PEP 508 — and `requires`, the core
+  compatibility floor);
+- `discover(roots)` → `(addon_dir, manifest)` pairs, caller root order =
+  precedence, symlink-following with a cycle guard;
+- `compile_dependencies(manifests)` / `check_requires(manifests, core_version)`;
+- `write_block(pyproject, deps)` → the generated `[dependency-groups].addons`
+  key, comment-preserving, idempotent, atomically replaced.
+
+The library face imports stdlib + `packaging` + `tomlkit` only — never
+hatchling or Django (`tests/test_layering.py` enforces it).
+
 ## Escape hatch: explicit hatchling hooks
 
 The same two hooks are also registered by name, so a repo that prefers plain
@@ -39,7 +57,7 @@ hatchling can wire them itself instead of using the backend:
 
 ```toml
 [build-system]
-requires = ["hatchling", "hatch-angee>=0.1"]
+requires = ["hatchling", "hatch-angee>=0.2"]
 build-backend = "hatchling.build"
 
 [project]

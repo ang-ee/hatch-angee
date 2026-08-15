@@ -39,8 +39,12 @@ def make_addon(write_file):
         with_bin=False,
         with_config=False,
         with_manifest=True,
+        manifest=None,
     ) -> Path:
-        write_file(addon_dir / "addon.toml", f'[addon]\nname = "{name}"\n')
+        write_file(
+            addon_dir / "addon.toml",
+            manifest if manifest is not None else f'[addon]\nname = "{name}"\n',
+        )
         for seam in seams:
             if with_src:
                 write_file(addon_dir / seam / "src" / "index.js", "// entry")

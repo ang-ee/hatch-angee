@@ -20,7 +20,6 @@ bundle all work without configuration.
 
 from __future__ import annotations
 
-import tomllib
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
@@ -28,19 +27,10 @@ from typing import Any
 from hatchling.builders.hooks.plugin.interface import BuildHookInterface
 from hatchling.metadata.plugin.interface import MetadataHookInterface
 
+from hatch_angee.discovery import discover
+
 ENTRY_POINT_GROUP = "angee.addons"
-# Never descend into dependency/build/cache/venv trees: addon source never lives in a
-# dot-directory (`.angee` — which holds the in-repo uv cache + dev worktrees — `.venv`,
-# `.git`, `.tox`, …) or a build-output dir. Checked on the path *relative to root* so a
-# dot in a parent of the project doesn't prune everything.
-_PRUNE = {"node_modules", "venv", "dist", "build", "site-packages"}
 _SEAMS = ("web", "templates", "skills")
-
-
-def _pruned(parts: tuple[str, ...]) -> bool:
-    """Return whether any path component is a build/cache dir or a dot-directory."""
-
-    return any(part in _PRUNE or part.startswith(".") for part in parts)
 
 
 def iter_addons(root: Path) -> Iterator[tuple[str, Path]]:
@@ -49,15 +39,8 @@ def iter_addons(root: Path) -> Iterator[tuple[str, Path]]:
     Sorted for build determinism; pruned of dependency/build/cache/venv trees.
     """
 
-    markers = (
-        m
-        for m in root.rglob("addon.toml")
-        if not _pruned(m.relative_to(root).parts)
-    )
-    for marker in sorted(markers):
-        name = tomllib.loads(marker.read_text()).get("addon", {}).get("name")
-        if name:
-            yield name, marker.parent
+    for addon_dir, manifest in discover([root]):
+        yield manifest.name, addon_dir
 
 
 class AddonEntryPointsHook(MetadataHookInterface):
