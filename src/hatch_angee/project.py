@@ -65,8 +65,19 @@ def write_block(pyproject_path: Path | str, deps: Iterable[str]) -> None:
     # its own trivia/comments — dropping the addons key and any header comment
     # (orphans and duplicates included), then append exactly one header and the
     # generated key. The generated key always renders last in the table.
+    body = groups.value.body if groups is not None else []
+    # tomlkit stores the separator before a following table in this table's
+    # body, so hold that whitespace back until the generated block is complete.
+    tail_start = len(body)
+    while (
+        tail_start
+        and body[tail_start - 1][0] is None
+        and isinstance(body[tail_start - 1][1], Whitespace)
+    ):
+        tail_start -= 1
+
     rebuilt = tomlkit.table()
-    for key, item in groups.value.body if groups is not None else ():
+    for key, item in body[:tail_start]:
         if key is None and isinstance(item, Comment) and GENERATED_COMMENT in item.as_string():
             continue
         if key is not None and key.key == "addons":
@@ -78,6 +89,9 @@ def write_block(pyproject_path: Path | str, deps: Iterable[str]) -> None:
             rebuilt.add(key, item)
     rebuilt.add(tomlkit.comment(GENERATED_COMMENT))
     rebuilt.add("addons", generated)
+    for _, item in body[tail_start:]:
+        assert isinstance(item, Whitespace)
+        rebuilt.add(item)
     document["dependency-groups"] = rebuilt
 
     rendered = tomlkit.dumps(document)

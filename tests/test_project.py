@@ -32,6 +32,78 @@ def test_writes_sorted_deduped_block_and_is_idempotent(tmp_path, write_file):
     assert document["dependency-groups"]["addons"] == ["httpx>=0.28", "redis>=5"]
 
 
+def test_mid_file_table_is_byte_idempotent_without_blank_line_growth(tmp_path, write_file):
+    original = f'''[project]
+name = "demo"
+
+[dependency-groups]
+dev = ["pytest"]
+# {GENERATED_COMMENT}
+addons = [
+    "httpx>=0.28",
+]
+
+[tool.uv]
+default-groups = ["dev", "addons"]
+'''
+    pyproject = write_file(tmp_path / "pyproject.toml", original)
+
+    outputs = []
+    for _ in range(3):
+        write_block(pyproject, ["httpx>=0.28"])
+        outputs.append(pyproject.read_bytes())
+
+    assert outputs == [original.encode()] * 3
+
+
+def test_last_table_is_a_byte_identical_no_op(tmp_path, write_file):
+    original = f'''[project]
+name = "demo"
+
+[dependency-groups]
+dev = ["pytest"]
+# {GENERATED_COMMENT}
+addons = [
+    "httpx>=0.28",
+]
+'''
+    pyproject = write_file(tmp_path / "pyproject.toml", original)
+
+    write_block(pyproject, ["httpx>=0.28"])
+
+    assert pyproject.read_bytes() == original.encode()
+
+
+def test_fresh_table_has_stable_position_and_one_header(tmp_path, write_file):
+    pyproject = write_file(
+        tmp_path / "pyproject.toml",
+        '''[project]
+name = "demo"
+
+[tool.uv]
+default-groups = ["dev", "addons"]
+''',
+    )
+    expected = f'''[project]
+name = "demo"
+
+[tool.uv]
+default-groups = ["dev", "addons"]
+
+[dependency-groups]
+# {GENERATED_COMMENT}
+addons = [
+    "httpx>=0.28",
+]
+'''
+
+    write_block(pyproject, ["httpx>=0.28"])
+    write_block(pyproject, ["httpx>=0.28"])
+
+    assert pyproject.read_text() == expected
+    assert pyproject.read_text().count(GENERATED_COMMENT) == 1
+
+
 def test_replaces_only_existing_addons_key_and_preserves_unrelated_content(tmp_path, write_file):
     pyproject = write_file(
         tmp_path / "pyproject.toml",
@@ -93,6 +165,32 @@ def test_orphaned_headers_are_reclaimed_to_exactly_one(tmp_path, write_file):
     assert content.count(GENERATED_COMMENT) == 1
     assert f"# {GENERATED_COMMENT}\naddons =" in content
     assert tomlkit.parse(content)["dependency-groups"]["dev"] == ["pytest"]
+
+
+def test_duplicate_and_orphaned_headers_are_reclaimed(tmp_path, write_file):
+    pyproject = write_file(
+        tmp_path / "pyproject.toml",
+        f'''[dependency-groups]
+# {GENERATED_COMMENT}
+# Operator comment stays.
+dev = ["pytest"]
+# {GENERATED_COMMENT}
+addons = ["old-dependency"]
+# {GENERATED_COMMENT}
+
+[tool.uv]
+default-groups = ["dev", "addons"]
+''',
+    )
+
+    write_block(pyproject, ["httpx>=0.28"])
+    content = pyproject.read_text()
+
+    assert content.count(GENERATED_COMMENT) == 1
+    assert "# Operator comment stays.\ndev = [\"pytest\"]" in content
+    assert f'# {GENERATED_COMMENT}\naddons = [\n    "httpx>=0.28",\n]' in content
+    assert "old-dependency" not in content
+    assert "\n\n[tool.uv]\n" in content
 
 
 def test_inline_dependency_groups_name_the_remedy(tmp_path, write_file):
