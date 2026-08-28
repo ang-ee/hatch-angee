@@ -71,6 +71,15 @@ def test_absent_seams_are_skipped(tmp_path, make_addon):
     assert all("skills" not in target for target in fi.values())
 
 
+def test_empty_discovery_config_does_not_ship_addon_seams(tmp_path, make_addon):
+    make_addon(tmp_path / "addons" / "angee" / "iam", "angee.iam")
+
+    build_data: dict = {}
+    _hook(tmp_path, {"addon-discovery": []}).initialize("standard", build_data)
+
+    assert build_data.get("force_include", {}) == {}
+
+
 def test_extra_web_ships_non_addon_packages_verbatim(tmp_path, write_file):
     # extra-web is how the framework ships its non-addon web libraries (e.g.
     # `angee/web/*`); @angee/app carries a `config/` build-config seam consumed

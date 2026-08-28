@@ -47,3 +47,29 @@ def test_skips_markers_without_an_addon_name(tmp_path, write_file):
 
 def test_empty_tree_yields_nothing(tmp_path):
     assert list(iter_addons(tmp_path)) == []
+
+
+def test_configured_discovery_roots_limit_and_order_the_scan(tmp_path, make_addon):
+    make_addon(tmp_path / "other" / "ignored", "vendor.ignored")
+    make_addon(tmp_path / "examples" / "crm", "vendor.crm")
+    make_addon(tmp_path / "addons" / "iam", "vendor.iam")
+
+    found = iter_addons(tmp_path, {"addon-discovery": ["examples", "addons"]})
+
+    assert [name for name, _ in found] == ["vendor.crm", "vendor.iam"]
+
+
+def test_empty_discovery_roots_disable_the_scan(tmp_path, make_addon):
+    make_addon(tmp_path / "addons" / "iam", "vendor.iam")
+
+    assert list(iter_addons(tmp_path, {"addon-discovery": []})) == []
+
+
+def test_discovery_roots_must_be_project_relative(tmp_path):
+    for path in ("../outside", str(tmp_path.resolve())):
+        try:
+            list(iter_addons(tmp_path, {"addon-discovery": [path]}))
+        except ValueError as error:
+            assert "must stay within the project root" in str(error)
+        else:
+            raise AssertionError(f"accepted discovery root outside the project: {path}")

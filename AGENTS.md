@@ -66,7 +66,9 @@ multi-addon bundle all work with no config.
    seams already resolve from the source roots on `sys.path`; copying them into
    site-packages would duplicate the namespace.
 
-`extra-web` (hook config) names glob roots of *non-addon* web packages
+`addon-discovery` (hook config) names project-relative roots searched by both
+hooks; omitted preserves whole-project discovery and an empty list disables it.
+`extra-web` names glob roots of *non-addon* web packages
 (framework-internal shared libs with no `addon.toml`) to ship verbatim. A normal
 addon repo configures none.
 
@@ -93,7 +95,7 @@ addon repo configures none.
    surface and overrides only `build_wheel` / `build_editable`, where `_enable()`
    injects both hooks into the builder's raw config and appends `entry-points` to
    `dynamic` — equivalent to the repo having declared the tables itself. Backend
-   config goes in `[tool.hatch-angee]` (e.g. `extra-web`).
+   config goes in `[tool.hatch-angee]` (e.g. `addon-discovery`, `extra-web`).
 
 When changing hook behavior, keep the two wiring paths in sync: `build.py:_enable`
 must inject the same hook names (`angee-addons`, `angee-addon-sources`) that
