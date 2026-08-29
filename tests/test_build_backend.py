@@ -61,6 +61,28 @@ def test_build_wheel_ships_seams_and_generates_entry_points(tmp_path, monkeypatc
     assert "angee.iam = angee.iam" in entry_points
 
 
+def test_backend_discovery_can_be_disabled_for_a_core_wheel(
+    tmp_path, monkeypatch, write_file
+):
+    root = tmp_path / "bundle"
+    _bundle(root, write_file)
+    with (root / "pyproject.toml").open("a") as pyproject:
+        pyproject.write("\n[tool.hatch-angee]\naddon-discovery = []\n")
+    out = tmp_path / "out"
+    out.mkdir()
+
+    monkeypatch.chdir(root)
+    wheel = out / build_wheel(str(out))
+
+    with zipfile.ZipFile(wheel) as zf:
+        names = set(zf.namelist())
+        entry_points = [name for name in names if name.endswith("entry_points.txt")]
+
+    assert "angee/__init__.py" in names
+    assert "angee/iam/web/src/index.js" not in names
+    assert entry_points == []
+
+
 def test_readme_flat_layout_example_builds(tmp_path, monkeypatch, write_file):
     # Mirrors the README's primary example: the backend, a co-located addon.toml,
     # and only `packages = [...]` — no hook tables, no `dynamic`. Here source path

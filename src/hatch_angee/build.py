@@ -9,10 +9,11 @@ injects:
   points (so ``entry-points`` is declared dynamic too);
 - the ``angee-addon-sources`` build hook → ships each addon's web/templates/skills.
 
-Backend config lives in ``[tool.hatch-angee]`` (e.g. ``extra-web`` for a
-framework's non-addon shared web libraries). The named hooks resolve through the
-same plugin registration (``hatch_angee.plugin``), so this backend is the *default*
-front door and ``hatchling`` + explicit hook tables stays the escape hatch.
+Backend config lives in ``[tool.hatch-angee]`` (e.g. ``addon-discovery`` for
+project-relative discovery roots and ``extra-web`` for a framework's non-addon
+shared web libraries). The named hooks resolve through the same plugin
+registration (``hatch_angee.plugin``), so this backend is the *default* front
+door and ``hatchling`` + explicit hook tables stays the escape hatch.
 
 Everything except the wheel/editable build is hatchling's own (re-exported).
 """
@@ -44,7 +45,9 @@ def _enable(builder: Any) -> None:
     dynamic = builder.metadata.core_raw_metadata.setdefault("dynamic", [])
     if "entry-points" not in dynamic:
         dynamic.append("entry-points")
-    builder.metadata.hatch.metadata.config.setdefault("hooks", {}).setdefault(_METADATA_HOOK, {})
+    builder.metadata.hatch.metadata.config.setdefault("hooks", {}).setdefault(
+        _METADATA_HOOK, dict(options)
+    )
 
 
 def build_wheel(  # type: ignore[no-redef]  # intentionally overrides hatchling's

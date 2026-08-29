@@ -32,3 +32,15 @@ def test_empty_group_when_no_addons(tmp_path):
     AddonEntryPointsHook(root=str(tmp_path), config={}).update(metadata)
 
     assert metadata["entry-points"][ENTRY_POINT_GROUP] == {}
+
+
+def test_discovery_config_limits_entry_points(tmp_path, make_addon):
+    make_addon(tmp_path / "addons" / "crm", "vendor.crm")
+    make_addon(tmp_path / "examples" / "notes", "example.notes")
+
+    metadata: dict = {}
+    AddonEntryPointsHook(
+        root=str(tmp_path), config={"addon-discovery": ["addons"]}
+    ).update(metadata)
+
+    assert metadata["entry-points"][ENTRY_POINT_GROUP] == {"vendor.crm": "vendor.crm"}

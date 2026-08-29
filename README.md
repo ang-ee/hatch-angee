@@ -30,9 +30,16 @@ On a wheel/editable build the backend discovers every `addon.toml` in the repo
 - **ships** each addon's `web/`, `templates/`, `skills/` into the wheel at the
   addon's import path (`vendor.crm` → `vendor/crm/...`), layout-agnostic.
 
-Backend config lives in `[tool.hatch-angee]` — e.g. `extra-web` names glob roots
-of non-addon shared web packages (no `addon.toml`) to ship verbatim. A normal
-addon repo configures none.
+Backend config lives in `[tool.hatch-angee]`. `addon-discovery` selects
+project-relative roots to scan; omitting it preserves the whole-repository scan,
+while an empty list disables addon discovery for a core-only wheel. `extra-web`
+names glob roots of non-addon shared web packages (no `addon.toml`) to ship
+verbatim. A normal addon repo configures none.
+
+```toml
+[tool.hatch-angee]
+addon-discovery = ["addons", "examples/addons"]
+```
 
 ## The library face
 

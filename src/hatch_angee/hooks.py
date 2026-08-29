@@ -20,7 +20,7 @@ bundle all work without configuration.
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from pathlib import Path
 from typing import Any
 
@@ -31,15 +31,42 @@ from hatch_angee.discovery import discover
 
 ENTRY_POINT_GROUP = "angee.addons"
 _SEAMS = ("web", "templates", "skills")
+_DISCOVERY_CONFIG = "addon-discovery"
 
 
-def iter_addons(root: Path) -> Iterator[tuple[str, Path]]:
-    """Yield ``(name, addon_dir)`` for every ``addon.toml`` under ``root``.
+def _discovery_roots(root: Path, config: Mapping[str, Any]) -> tuple[Path, ...]:
+    """Return the configured project-relative addon discovery roots.
 
-    Sorted for build determinism; pruned of dependency/build/cache/venv trees.
+    Omitting ``addon-discovery`` preserves the original whole-project scan.
+    Configuring an empty list disables discovery, which lets a project use the
+    backend for its core wheel without treating repository content as addons.
     """
 
-    for addon_dir, manifest in discover([root]):
+    configured = config.get(_DISCOVERY_CONFIG)
+    if configured is None:
+        return (root,)
+    if not isinstance(configured, list) or not all(isinstance(path, str) for path in configured):
+        msg = f"{_DISCOVERY_CONFIG} must be a list of project-relative paths"
+        raise TypeError(msg)
+
+    roots: list[Path] = []
+    for value in configured:
+        path = Path(value)
+        if path.is_absolute() or ".." in path.parts:
+            msg = f"{_DISCOVERY_CONFIG} paths must stay within the project root: {value!r}"
+            raise ValueError(msg)
+        roots.append(root / path)
+    return tuple(roots)
+
+
+def iter_addons(root: Path, config: Mapping[str, Any] | None = None) -> Iterator[tuple[str, Path]]:
+    """Yield ``(name, addon_dir)`` from the configured discovery roots.
+
+    Sorted for build determinism; pruned of dependency/build/cache/venv trees.
+    Roots are relative to ``root`` and retain their configured precedence.
+    """
+
+    for addon_dir, manifest in discover(_discovery_roots(root, config or {})):
         yield manifest.name, addon_dir
 
 
@@ -51,7 +78,7 @@ class AddonEntryPointsHook(MetadataHookInterface):
     def update(self, metadata: dict[str, Any]) -> None:
         """Set the ``angee.addons`` group: ``name -> import anchor`` per addon."""
 
-        addons = {name: name for name, _dir in iter_addons(Path(self.root))}
+        addons = {name: name for name, _dir in iter_addons(Path(self.root), self.config)}
         metadata.setdefault("entry-points", {})[ENTRY_POINT_GROUP] = dict(sorted(addons.items()))
 
 
@@ -86,7 +113,7 @@ class AddonSourcesBuildHook(BuildHookInterface[Any]):
             return
         root = Path(self.root)
         force_include: dict[str, str] = build_data.setdefault("force_include", {})
-        for name, addon_dir in iter_addons(root):
+        for name, addon_dir in iter_addons(root, self.config):
             target = name.replace(".", "/")
             if addon_dir.relative_to(root).as_posix() == target:
                 continue  # source path == import path → default walk handles the seams
