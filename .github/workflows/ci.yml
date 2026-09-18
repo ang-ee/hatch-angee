@@ -20,6 +20,12 @@ jobs:
         uses: astral-sh/setup-uv@v7
       - name: Install dependencies
         run: uv pip install --system -e .[dev]
+      # Consumers resolve hatchling fresh at build time, so the suite must pass
+      # against the newest release, not only the version the lock happens to pin
+      # (hatchling 1.32.3 changed the hook interface's generic arity and broke
+      # every downstream editable build until this was covered).
+      - name: Upgrade to the newest hatchling
+        run: uv pip install --system --upgrade hatchling
       - name: Lint
         run: ruff check .
       - name: Tests
