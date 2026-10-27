@@ -23,4 +23,4 @@ __all__ = [
     "write_block",
 ]
 
-__version__ = "0.2.4"
+__version__ = "0.2.5"
