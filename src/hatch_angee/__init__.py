@@ -6,6 +6,7 @@ composer also calls its manifest and dependency helpers in-process.
 
 from hatch_angee.compile import RequiresViolation, check_requires, compile_dependencies
 from hatch_angee.discovery import discover
+from hatch_angee.graph import order_app_dependencies
 from hatch_angee.manifest import AddonManifest, ManifestError, parse_manifest
 from hatch_angee.project import ProjectError, write_block
 
@@ -17,6 +18,7 @@ __all__ = [
     "check_requires",
     "compile_dependencies",
     "discover",
+    "order_app_dependencies",
     "parse_manifest",
     "write_block",
 ]
