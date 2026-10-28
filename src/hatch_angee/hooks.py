@@ -22,12 +22,21 @@ from __future__ import annotations
 
 from collections.abc import Iterator, Mapping
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from hatchling.builders.hooks.plugin.interface import BuildHookInterface
 from hatchling.metadata.plugin.interface import MetadataHookInterface
 
 from hatch_angee.discovery import discover
+
+if TYPE_CHECKING:
+    from hatchling.builders.config import BuilderConfig
+
+    _SourcesBuildHookBase = BuildHookInterface[BuilderConfig]
+else:
+    # Hatchling releases have used different generic arities. Those parameters
+    # are static contracts; runtime hooks do not specialize either parameter.
+    _SourcesBuildHookBase = BuildHookInterface
 
 ENTRY_POINT_GROUP = "angee.addons"
 _SEAMS = ("web", "templates", "skills")
@@ -82,13 +91,7 @@ class AddonEntryPointsHook(MetadataHookInterface):
         metadata.setdefault("entry-points", {})[ENTRY_POINT_GROUP] = dict(sorted(addons.items()))
 
 
-# Subclassed unparameterized on purpose: hatchling < 1.32.3 declares
-# ``BuildHookInterface`` generic over one type parameter, 1.32.3 over two
-# (builder config and plugin manager), and subscripting with the wrong arity is
-# a ``TypeError`` at import time. A bare subclass is valid against every
-# hatchling this package supports, and the hook body never relies on the
-# parameters.
-class AddonSourcesBuildHook(BuildHookInterface):
+class AddonSourcesBuildHook(_SourcesBuildHookBase):
     """Force-include each addon's web/templates/skills trees into the wheel.
 
     Hatchling's default file walk drops some source trees inconsistently, so each
