@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 
+from hatch_angee import parse_manifest_content
 from hatch_angee.manifest import AddonManifest, ManifestError, parse_manifest
 
 
@@ -156,3 +157,58 @@ def test_manifest_is_hashable_despite_mapping_fields():
     manifest = AddonManifest(name="vendor.crm", urls={"Homepage": "https://example.test"})
 
     assert isinstance(hash(manifest), int)
+
+
+@pytest.mark.parametrize("as_bytes", [False, True])
+def test_content_entrypoint_matches_file_contract_without_reading_its_diagnostic_path(tmp_path, as_bytes):
+    content = """
+[addon]
+name = "vendor.remote"
+description = "Remote metadata"
+keywords = ["remote", "catalog"]
+category = "Tools"
+depends_on = "vendor.foundation"
+dependencies = ["httpx>=0.28"]
+[web]
+package = "@vendor/remote"
+[[migrations]]
+name = "preserve_rows"
+module = "runtime_migrations.preserve_rows"
+"""
+    marker = tmp_path / "addon.toml"
+    marker.write_text(content, encoding="utf-8")
+    expected = parse_manifest(marker)
+    marker.unlink()
+    actual = parse_manifest_content(content.encode("utf-8") if as_bytes else content, path=marker)
+    assert actual == expected
+    assert actual.depends_on == ("vendor.foundation",)
+    assert actual.migrations[0]["name"] == "preserve_rows"
+    assert not marker.exists()
+
+
+@pytest.mark.parametrize(
+    "content",
+    [
+        b"\xff",
+        b"[addon",
+        b"",
+        b"[addon]\n",
+        b'[addon]\nname=""\n',
+        b'[addon]\nname="x.y"\nkeywords=[1]\n',
+        b'[addon]\nname="x.y"\ndescription=3\n',
+        b'[addon]\nname="x.y"\ndependencies=["not a requirement @"]\n',
+    ],
+)
+def test_content_and_file_errors_keep_one_source_key_and_code(tmp_path, content):
+    marker = tmp_path / "remote" / "addon.toml"
+    marker.parent.mkdir()
+    marker.write_bytes(content)
+    with pytest.raises(ManifestError) as file_error:
+        parse_manifest(marker)
+    marker.unlink()
+    with pytest.raises(ManifestError) as content_error:
+        parse_manifest_content(content, path=marker)
+    assert content_error.value.path == file_error.value.path == marker
+    assert content_error.value.key == file_error.value.key
+    assert content_error.value.code == file_error.value.code
+    assert str(content_error.value) == str(file_error.value)
