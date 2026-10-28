@@ -48,6 +48,10 @@ Angee's composer imports the same package in-process during `angee build`:
 - `parse_manifest(path)` → the validated `AddonManifest` (`addon.toml`
   vocabulary incl. `dependencies` — PEP 508 — and `requires`, the core
   compatibility floor);
+- `parse_manifest_content(content, *, path="addon.toml")` → the same validated
+  manifest from UTF-8 bytes or decoded TOML text, without filesystem access.
+  The diagnostic path identifies a remote/archive source; file and content
+  entrypoints share one decoder and all manifest validation;
 - `discover(roots)` → `(addon_dir, manifest)` pairs, caller root order =
   precedence, symlink-following with a cycle guard;
 - `compile_dependencies(manifests)` / `check_requires(manifests, core_version)`;

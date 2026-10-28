@@ -187,17 +187,29 @@ def _migrations(data: Mapping[str, Any], path: Path) -> tuple[Mapping[str, Any],
 
 
 def parse_manifest(path: Path | str) -> AddonManifest:
-    """Parse and validate one ``addon.toml``.
+    """Read and validate one filesystem addon.toml through the content owner."""
 
-    The stable ``[addon]`` vocabulary is validated eagerly. Contribution seam
-    tables are retained as mappings so their independently evolving inner schemas
-    do not force a hatch-angee release.
+    marker = Path(path)
+    try:
+        content = marker.read_bytes()
+    except OSError as error:
+        raise _error(marker, "file", str(error)) from error
+    return parse_manifest_content(content, path=marker)
+
+
+def parse_manifest_content(content: bytes | str, *, path: Path | str = "addon.toml") -> AddonManifest:
+    """Parse one UTF-8 blob or decoded TOML text with the same manifest rules.
+
+    path is diagnostic identity only and is never opened. Stable addon vocabulary
+    is validated eagerly; contribution seam tables retain their mappings so their
+    independently evolving inner schemas do not force a parser release.
     """
 
     marker = Path(path)
     try:
-        data = tomllib.loads(marker.read_text(encoding="utf-8"))
-    except (OSError, UnicodeDecodeError) as error:
+        text = content.decode("utf-8") if isinstance(content, bytes) else content
+        data = tomllib.loads(text)
+    except UnicodeDecodeError as error:
         raise _error(marker, "file", str(error)) from error
     except tomllib.TOMLDecodeError as error:
         raise _error(marker, "toml", str(error)) from error
