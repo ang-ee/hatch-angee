@@ -43,7 +43,7 @@ addon-discovery = ["addons", "examples/addons"]
 
 ## The library face
 
-Angee's composer imports the same package in-process during `angee build`:
+Angee's host and explicit build tooling import the same package in-process:
 
 - `parse_manifest(path)` → the validated `AddonManifest` (`addon.toml`
   vocabulary incl. `dependencies` — PEP 508 — and `requires`, the core

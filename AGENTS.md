@@ -8,8 +8,8 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 Angee's addon build machinery. Angee addon repos add it to their build requires
 so they carry **no `hatch_build.py`** of their own; they reference the hooks by
 name (or use the bundled build backend) instead. It is consumed at build time by
-addon repos **and in-process at runtime by Angee's composer**, which calls the
-manifest/discovery/compile/project library during `angee build`.
+addon repos **and in-process by Angee's host and explicit build tooling**, which
+call the manifest/discovery/compile/project library.
 
 ## Commands
 
