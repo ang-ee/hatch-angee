@@ -14,10 +14,6 @@ from typing import Any, cast
 from hatchling.builders.sdist import SdistBuilder
 from hatchling.builders.wheel import WheelBuilder
 
-from hatch_angee.graph import (
-    order_app_dependencies,  # noqa: F401 — removed with the old compiler at P4
-)
-
 
 def _builder(target: str) -> Any:
     root = Path.cwd()

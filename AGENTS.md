@@ -5,9 +5,8 @@ one in-place addon distribution. It never reads `tool.angee`, computes requireme
 or writes project metadata. One `angee.addons` entry-point key owns layout; native
 Hatchling configuration overrides defaults. Hatchling is the only dependency.
 
-`src/hatch_angee/graph.py` retains the published `order_app_dependencies` API for
-the current Angee compiler until its separately scheduled cutover. Do not add new
-runtime APIs or restore manifest parsing, discovery, metadata hooks or compilers.
+Do not add runtime APIs or restore manifest parsing, discovery, metadata hooks
+or compilers.
 
 Use `uv run --extra dev pytest`, `uv run --extra dev ruff check .`, and `uv build`.
 Changes to the backend must cover wheel, editable, sdist and metadata entrypoints.

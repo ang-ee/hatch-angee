@@ -20,6 +20,3 @@ Keep repository ignore rules at its root; nested ignore files can shadow them.
 
 Build with `uv build --wheel`, or build a wheel from the self-contained sdist.
 Run `uv run --extra dev pytest` for backend and distribution contracts.
-
-The published `order_app_dependencies` helper remains available only while the
-current Angee compiler consumes it; its removal accompanies the compiler cutover.

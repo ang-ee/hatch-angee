@@ -9,7 +9,6 @@ from pathlib import Path
 import pytest
 
 import hatch_angee
-from hatch_angee import order_app_dependencies
 
 
 @pytest.fixture
@@ -98,17 +97,13 @@ def test_backend_reads_no_capability_or_dependency_contracts():
     source = Path(hatch_angee.__file__).read_text()
     tree = ast.parse(source)
     imports = {node.module.split(".")[0] for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)}
-    assert imports <= {"__future__", "pathlib", "typing", "hatchling", "hatch_angee"}
+    assert imports <= {"__future__", "pathlib", "typing", "hatchling"}
     assert 'config["tool"]' not in source
     assert 'project["dependencies"]' not in source
-    assert not any(path.name in {"manifest.py", "discovery.py", "compile.py", "hooks.py"}
+    assert not any(path.name in {"manifest.py", "discovery.py", "compile.py", "hooks.py", "graph.py"}
                    for path in Path(hatch_angee.__file__).parent.glob("*.py"))
 
 
-def test_transitional_published_ordering_helper_keeps_contract():
-    assert order_app_dependencies(["a"], {"a": ("b",), "b": ()}) == ("b", "a")
-    with pytest.raises(RuntimeError, match="Cycle"):
-        order_app_dependencies(["a"], {"a": ("b",), "b": ("a",)})
 
 
 def test_exact_editable_metadata_preserves_native_runtime_requirement(addon, tmp_path):
