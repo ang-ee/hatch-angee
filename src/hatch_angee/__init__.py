@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 import tomllib
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from hatchling.builders.sdist import SdistBuilder
 from hatchling.builders.wheel import WheelBuilder
@@ -65,7 +65,7 @@ def build_sdist(sdist_directory: str, config_settings: Any = None) -> str:
 
 
 def get_requires_for_build_wheel(config_settings: Any = None) -> list[str]:
-    return _builder("wheel").config.dependencies
+    return cast(list[str], _builder("wheel").config.dependencies)
 
 
 def get_requires_for_build_editable(config_settings: Any = None) -> list[str]:
@@ -75,7 +75,7 @@ def get_requires_for_build_editable(config_settings: Any = None) -> list[str]:
 
 
 def get_requires_for_build_sdist(config_settings: Any = None) -> list[str]:
-    return _builder("sdist").config.dependencies
+    return cast(list[str], _builder("sdist").config.dependencies)
 
 
 def _prepare_metadata(metadata_directory: str, *, editable: bool) -> str:
