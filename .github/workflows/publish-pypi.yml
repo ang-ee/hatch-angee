@@ -33,7 +33,6 @@ jobs:
           python - <<'PY'
           import os
           import pathlib
-          import re
           import sys
           import tomllib
 
@@ -42,21 +41,8 @@ jobs:
           with pathlib.Path("pyproject.toml").open("rb") as handle:
               project_version = tomllib.load(handle)["project"]["version"]
 
-          init_text = pathlib.Path("src/hatch_angee/__init__.py").read_text(
-              encoding="utf-8"
-          )
-          match = re.search(r'^__version__ = "([^"]+)"$', init_text, re.M)
-          package_version = match.group(1) if match else None
-
-          versions = {
-              "tag": expected,
-              "pyproject.toml": project_version,
-              "src/hatch_angee/__init__.py": package_version,
-          }
-          if len(set(versions.values())) != 1:
-              for name, version in versions.items():
-                  print(f"{name}: {version}")
-              print("Release versions must match.")
+          if project_version != expected:
+              print(f"Tag {expected!r} does not match project version {project_version!r}")
               sys.exit(1)
           PY
 
