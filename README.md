@@ -1,79 +1,25 @@
 # hatch-angee
 
-The one published implementation of Angee's addon machinery: the **build
-backend** addon repos set as `build-backend`, and the **library** Angee's
-composer calls in-process (manifest parsing, discovery, dependency
-compilation, the generated pyproject block). An addon repo carries **no
-`hatch_build.py`**, **no hook tables**, and **no `dynamic`** of its own — the
-backend wires everything in.
+A small PEP 517 backend for one in-place Angee addon per distribution. Hatchling
+owns metadata and archives; this backend derives layout defaults from the single
+`angee.addons` entry point. All PEP 621 fields remain authored static metadata.
 
 ```toml
-# an addon repo's pyproject.toml — no Python hook code, no hook tables
-[build-system]
-requires = ["hatch-angee>=0.2"]          # pulls hatchling transitively
-build-backend = "hatch_angee.build"
+build-system = { requires = ["hatch-angee>=1,<2"], build-backend = "hatch_angee" }
 
 [project]
-name = "vendor-crm"                      # the addon name, PEP 503-normalized (vendor.crm)
-version = "0.1.0"
-# no `dynamic = [...]` — the backend declares entry-points dynamic for you
-
-[tool.hatch.build.targets.wheel]
-packages = ["vendor"]                    # the import package(s) to ship
+name = "acme-notes"
+version = "1.0.0"
+entry-points."angee.addons"."acme.notes" = "acme.notes"
 ```
 
-On a wheel/editable build the backend discovers every `addon.toml` in the repo
-(pruning `node_modules`, `.venv`, `dist`, …) and:
+Put this file inside `addons/acme/notes/`, alongside its Python package content.
+The backend remaps files into `acme/notes/`, includes package data, and points an
+editable install at the namespace root. Explicit `tool.hatch.build` settings win.
+Keep repository ignore rules at its root; nested ignore files can shadow them.
 
-- **generates** the `angee.addons` entry points (`name -> import anchor`) — the
-  runtime enumerates these over `uv.lock` to list *available* addons;
-- **ships** each addon's `web/`, `templates/`, `skills/` into the wheel at the
-  addon's import path (`vendor.crm` → `vendor/crm/...`), layout-agnostic.
+Build with `uv build --wheel`, or build a wheel from the self-contained sdist.
+Run `uv run --extra dev pytest` for backend and distribution contracts.
 
-Backend config lives in `[tool.hatch-angee]`. `addon-discovery` selects
-project-relative roots to scan; omitting it preserves the whole-repository scan,
-while an empty list disables addon discovery for a core-only wheel. `extra-web`
-names glob roots of non-addon shared web packages (no `addon.toml`) to ship
-verbatim. A normal addon repo configures none.
-
-```toml
-[tool.hatch-angee]
-addon-discovery = ["addons", "examples/addons"]
-```
-
-## The library face
-
-Angee's composer imports the same package in-process during `angee build`:
-
-- `parse_manifest(path)` → the validated `AddonManifest` (`addon.toml`
-  vocabulary incl. `dependencies` — PEP 508 — and `requires`, the core
-  compatibility floor);
-- `parse_manifest_content(content, *, path="addon.toml")` → the same validated
-  manifest from UTF-8 bytes or decoded TOML text, without filesystem access.
-  The diagnostic path identifies a remote/archive source; file and content
-  entrypoints share one decoder and all manifest validation;
-- `discover(roots)` → `(addon_dir, manifest)` pairs, caller root order =
-  precedence, symlink-following with a cycle guard;
-- `compile_dependencies(manifests)` / `check_requires(manifests, core_version)`;
-- `write_block(pyproject, deps)` → the generated `[dependency-groups].addons`
-  key, comment-preserving, idempotent, atomically replaced.
-
-The library face imports stdlib + `packaging` + `tomlkit` only — never
-hatchling or Django (`tests/test_layering.py` enforces it).
-
-## Escape hatch: explicit hatchling hooks
-
-The same two hooks are also registered by name, so a repo that prefers plain
-hatchling can wire them itself instead of using the backend:
-
-```toml
-[build-system]
-requires = ["hatchling", "hatch-angee>=0.2"]
-build-backend = "hatchling.build"
-
-[project]
-dynamic = ["entry-points"]
-
-[tool.hatch.metadata.hooks.angee-addons]
-[tool.hatch.build.targets.wheel.hooks.angee-addon-sources]
-```
+The published `order_app_dependencies` helper remains available only while the
+current Angee compiler consumes it; its removal accompanies the compiler cutover.
