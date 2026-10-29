@@ -78,12 +78,23 @@ def get_requires_for_build_sdist(config_settings: Any = None) -> list[str]:
     return _builder("sdist").config.dependencies
 
 
-def prepare_metadata_for_build_wheel(metadata_directory: str, config_settings: Any = None) -> str:
+def _prepare_metadata(metadata_directory: str, *, editable: bool) -> str:
     builder = _builder("wheel")
     directory = Path(metadata_directory) / f"{builder.artifact_project_id}.dist-info"
     directory.mkdir(exist_ok=True)
-    (directory / "METADATA").write_text(builder.config.core_metadata_constructor(builder.metadata), encoding="utf-8")
+    from hatchling.builders.constants import EDITABLES_REQUIREMENT
+
+    dependencies = []
+    if editable and not builder.config.dev_mode_dirs and builder.config.dev_mode_exact:
+        dependencies.append(EDITABLES_REQUIREMENT)
+    metadata = builder.config.core_metadata_constructor(builder.metadata, extra_dependencies=dependencies)
+    (directory / "METADATA").write_text(metadata, encoding="utf-8")
     return directory.name
 
 
-prepare_metadata_for_build_editable = prepare_metadata_for_build_wheel
+def prepare_metadata_for_build_wheel(metadata_directory: str, config_settings: Any = None) -> str:
+    return _prepare_metadata(metadata_directory, editable=False)
+
+
+def prepare_metadata_for_build_editable(metadata_directory: str, config_settings: Any = None) -> str:
+    return _prepare_metadata(metadata_directory, editable=True)

@@ -109,3 +109,14 @@ def test_transitional_published_ordering_helper_keeps_contract():
     assert order_app_dependencies(["a"], {"a": ("b",), "b": ()}) == ("b", "a")
     with pytest.raises(RuntimeError, match="Cycle"):
         order_app_dependencies(["a"], {"a": ("b",), "b": ("a",)})
+
+
+def test_exact_editable_metadata_preserves_native_runtime_requirement(addon, tmp_path):
+    with (addon / "pyproject.toml").open("a") as stream:
+        stream.write('\n[tool.hatch.build]\ndev-mode-dirs = []\ndev-mode-exact = true\n')
+    prepared = tmp_path / hatch_angee.prepare_metadata_for_build_editable(str(tmp_path)) / "METADATA"
+    expected = email.message_from_bytes(prepared.read_bytes()).get_all("Requires-Dist")
+    editable = wheel_files(tmp_path / hatch_angee.build_editable(str(tmp_path)))
+    actual = email.message_from_bytes(next(value for name, value in editable.items() if name.endswith("/METADATA")))
+    assert actual.get_all("Requires-Dist") == expected
+    assert "editables~=0.3" in expected
