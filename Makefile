@@ -1,17 +1,17 @@
 .PHONY: install-dev test lint typecheck check ci
 
 install-dev:
-	uv pip install -e .[dev]
+	uv sync --extra dev
 
 test:
-	uv run pytest -q
+	uv run --extra dev pytest -q
 
 lint:
-	uv run ruff check .
+	uv run --extra dev ruff check .
 
 typecheck:
-	uv run mypy src
+	uv run --extra dev mypy src
 
-check: lint test
+check: lint typecheck test
 
 ci: install-dev check

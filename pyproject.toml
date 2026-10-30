@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "hatch-angee"
-version = "1.0.0"
-description = "Hatchling layout defaults for in-place Angee addon distributions."
+version = "1.1.0"
+description = "Hatchling layout and metadata defaults for in-place Angee addon distributions."
 readme = "README.md"
 license = "AGPL-3.0-or-later"
 license-files = ["LICENSE"]
@@ -37,10 +37,11 @@ dev = [
 Homepage = "https://github.com/ang-ee/hatch-angee"
 Issues = "https://github.com/ang-ee/hatch-angee/issues"
 
-# Register the hooks with hatchling so an addon repo references them by name
-# (no per-repo hook code). See src/hatch_angee/plugin.py.
 [tool.hatch.build.targets.wheel]
 packages = ["src/hatch_angee"]
+
+[tool.hatch.build.targets.sdist]
+exclude = ["/.jj"]
 
 [tool.pytest.ini_options]
 python_files = ["test_*.py"]
@@ -60,7 +61,7 @@ python_version = "3.11"
 strict = true
 exclude = ["build/", "dist/"]
 
-# hatchling ships no type information for its plugin interfaces.
+# Older supported Hatchling releases do not ship type information.
 [[tool.mypy.overrides]]
 module = ["hatchling.*"]
 ignore_missing_imports = true
