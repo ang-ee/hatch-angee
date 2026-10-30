@@ -14,7 +14,7 @@ keywords = ["notes", "productivity"]
 dynamic = ["entry-points"]
 ```
 
-Put this file inside `addons/acme/notes/`, alongside its Python package content.
+Put this file inside `src/acme/notes/`, alongside its Python package content.
 The hook generates `acme.notes = "acme.notes"` in the `angee.addons` group. It
 normalizes the distribution name, uses its first hyphen to separate the namespace,
 and turns remaining hyphens into underscores: `acme-integrate-notes` becomes
